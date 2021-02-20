@@ -1,0 +1,227 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity Counters is
+	port ( CLK : in std_logic;
+	       RST : in std_logic;
+		   EN : in std_logic;
+		   Rstn : out std_logic;
+		   clk2 :out std_logic;
+		   EN_D :out std_logic;
+		   EN_M :out std_logic;
+		   Q : out std_logic_vector( 4 downto 0)
+		   
+		   
+		   
+		   );
+end entity;
+
+architecture behave of counters is
+signal CNT1 : std_logic_vector(1 downto 0) := (others => '0');
+signal CNT2 : std_logic_vector(4 downto 0) := (others => '0');
+signal FF_Rstn : std_logic;
+signal FF_clk2 : std_logic;
+
+begin
+
+proc_CNT1: process(CLK,RST)
+begin 
+       if RST = '1' then
+	    CNT1 <= (others => '0');
+		elsif (rising_edge(CLK)) then
+		   if EN='1' then
+		   CNT1 <= CNT1+1;
+		   else
+		   CNT1 <= CNT1;
+		end if;
+	  end if;	
+end process;
+
+proc_CNT2: process(CLK,RST)
+begin 
+     
+       	 if RST = '1' then
+	    CNT2 <= (others => '0');
+		elsif (rising_edge(CLK)) then
+		  if CNT1 ="10" then
+		   CNT2 <= CNT2+1;
+		   else
+		   CNT2 <= CNT2;
+		end if;
+	  end if;	
+end process;
+
+proc_FF_rstn: process(CLK,RST)
+begin 
+     
+       	 if RST = '1' then
+	      FF_Rstn <= '0';
+		 elsif (rising_edge(CLK)) then
+		  
+		   FF_Rstn <= RST;
+		  		 end if;
+	  	
+end process;
+
+Rstn <= FF_Rstn;
+
+proc_FF_clk2: process(CLK,RST)
+begin 
+     
+       	 if RST = '1' then
+	      FF_clk2 <= '0';
+		elsif (rising_edge(CLK)) then
+		  
+		   FF_clk2 <= not CLK;
+		   
+		end if;
+	  	
+end process;
+
+clk2 <= FF_clk2;
+
+enableD_proc : process(CNT2)
+begin
+	if CNT2 = x"9" then
+		EN_D <= '1';
+	   else
+		EN_D <= '0';
+	end if;
+end process;
+
+enableM_proc : process(CNT2)
+begin
+	if CNT2 = x"1A" then
+		EN_M <= '1';
+	  else
+		EN_M <= '0';
+	end if;
+end process;
+
+Q <= CNT2;
+
+end behave;
+
+
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+
+
+entity test_bench is
+end entity;
+
+architecture behave of test_bench is
+
+component Counters is
+
+port (     CLK : in std_logic;
+	       RST : in std_logic;
+		   EN : in std_logic;
+		   Rstn : out std_logic;
+		   clk2 :out std_logic;
+		   EN_D :out std_logic;
+		   EN_M :out std_logic;
+		   Q : out std_logic_vector( 4 downto 0)
+		   
+		   
+		   
+		   );
+end component;
+
+component Dataflow is
+
+port ( 
+		   Data_a : in std_logic_vector(7 downto 0);
+		   Data_b : in std_logic_vector(5 downto 0);
+		   Q   : in std_logic_vector(4 downto 0);
+		   clk2 : in std_logic;
+		   Rstn : in std_logic;
+		   EN_D : in std_logic;
+		   EN_M : in std_logic;
+		   D_OUT : out std_logic_vector(13 downto 0);
+		   D2_OUT : out std_logic_vector(10 downto 0)
+		   
+		   );
+end component;
+
+signal CLK_sim : std_logic;
+signal RST_sim : std_logic;
+signal EN_sim : std_logic;
+signal Rstn_sim : std_logic;
+signal clk2_sim : std_logic;
+signal EN_D_sim : std_logic;
+signal EN_M_sim :std_logic;
+signal Q_sim : std_logic_vector(4 downto 0);
+signal Data_a_sim : std_logic_vector(7 downto 0);
+signal Data_b_sim : std_logic_vector(5 downto 0);
+signal D_OUT_sim :  std_logic_vector(13 downto 0);
+signal D2_OUT_sim : std_logic_vector(10 downto 0);
+
+
+constant clk1_per :time := 10ns;
+
+
+begin	
+counter_s: Counters port map(
+           CLK => CLK_sim,
+		   RST=>RST_sim,
+		   EN=> EN_sim,
+		   Rstn=> Rstn_sim,
+		   clk2=>clk2_sim,
+		   EN_D=>EN_D_sim,
+		   EN_M=> EN_M_sim,
+		   Q=> Q_sim
+);
+
+Dataflow: Dataflow port map(
+           Data_a=>Data_a_sim,
+		   Data_b=>Data_b_sim,
+		   Q=> Q_sim,
+		   clk2=>clk2_sim,
+		   Rstn=> Rstn_sim,
+		   D2_OUT=>D2_OUT_sim,
+		   D_OUT=>D_OUT_sim,
+           
+
+		   
+		   
+		   EN_D=>EN_D_sim,
+		   EN_M=> EN_M_sim
+		   
+);
+
+clk1_proc : process 
+begin
+    CLK_sim <= '1';
+	wait for clk1_per/2;
+	CLK_sim <= not CLK_sim;
+	wait for clk1_per/2;
+end process;
+
+rst_proc : process  ----check the reset if the active low put active low for short time
+begin
+	-- 
+	RST_sim <= '0';
+	wait for clk1_per * 3;
+	RST_sim <= not RST_sim;
+	wait for clk1_per * 3;
+end process;
+
+
+en_proc: process
+begin
+    EN_sim <= '0'; 
+    wait for clk1_per * 2;
+    EN_sim <= '1';
+    wait;
+end process;
+
+end behave;S
